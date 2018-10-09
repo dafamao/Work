@@ -1,0 +1,53 @@
+/// <summary>
+        /// 判断是否能PING通数据库服务器--收录并改进
+        /// </summary>
+        /// <param name="strIp"></param>
+        /// <returns></returns>
+        public static bool CmdPing(string strIp)
+        {
+            try
+            {
+                bool result = false;
+
+                // 参数处理
+                if (strIp == null ||
+                    strIp.Trim() == string.Empty)
+                {
+                    return result;
+                }
+
+
+                Process aProcess = new Process();
+                //初始化调用进程参数
+                aProcess.StartInfo.FileName = "cmd.exe";
+                aProcess.StartInfo.UseShellExecute = false;
+                aProcess.StartInfo.RedirectStandardInput = true;
+                aProcess.StartInfo.RedirectStandardOutput = true;
+                aProcess.StartInfo.RedirectStandardError = true;
+                aProcess.StartInfo.CreateNoWindow = true;
+                //启动
+                aProcess.Start();
+                //输入ping命令
+                aProcess.StandardInput.WriteLine("ping -n 1 " + strIp);
+                //输入exit命令
+                aProcess.StandardInput.WriteLine("exit");
+                //取输出
+                string strRst = aProcess.StandardOutput.ReadToEnd();
+
+                if (strRst.IndexOf("(0%") != -1)
+                {
+                    result = true;
+                }
+                else
+                {
+                    result = false;
+                }
+                aProcess.Close();
+
+                return result;
+            }
+            catch (Exception ce)
+            {
+                throw ce;
+            }
+        }
