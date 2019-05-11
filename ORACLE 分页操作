@@ -1,0 +1,99 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Oracle.ManagedDataAccess;
+using Oracle.ManagedDataAccess.Client;
+using System.Data;
+
+namespace oracleTest
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            OracleParameter[] Oraparas = new OracleParameter[]
+            {
+                //表名
+                new OracleParameter("TableName",OracleDbType.Varchar2),
+                //一页显示几行
+                new OracleParameter("OneCount",OracleDbType.Int32),
+                //需要显示第几页
+                new OracleParameter("NowPage",OracleDbType.Int32),
+                //返回参数；全部有多少条数据
+                new OracleParameter("AllCount",OracleDbType.Int32),
+                //返回参数：总共多少页
+                new OracleParameter("AllPages",OracleDbType.Int32),
+                //返回的数据
+                new OracleParameter("p_cursor",OracleDbType.RefCursor)
+            };
+            Oraparas[0].Value = "emp";
+            Oraparas[1].Value = 3;
+            Oraparas[2].Value = 2;
+            Oraparas[3].Direction = ParameterDirection.Output;
+            Oraparas[4].Direction = ParameterDirection.Output;
+            Oraparas[5].Direction = ParameterDirection.Output;
+
+            OracleConnection Oraconn = new OracleConnection(@"Data Source=(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=127.0.0.1)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=LISCXZ)));User Id=SCOTT;Password=sa");
+            Oraconn.Open();
+            OracleCommand Oracmd = Oraconn.CreateCommand();
+            Oracmd.CommandText = "fenye";
+            Oracmd.CommandType = CommandType.StoredProcedure;
+            Oracmd.Parameters.Clear();
+            foreach (var para in Oraparas)
+            {
+                Oracmd.Parameters.Add(para);
+            }
+
+            DataSet ds1 = new DataSet();
+            OracleDataAdapter da1 = new OracleDataAdapter(Oracmd);
+            da1.Fill(ds1);
+            DataTable dt = ds1.Tables[0];
+            //DataTable dt2= (DataTable)Oraparas[5]
+            Console.WriteLine(Oraparas[3].Value);
+            Console.WriteLine(Oraparas[4].Value);
+            Console.ReadKey();
+
+        }
+    }
+}
+
+
+
+
+
+create or replace package testpackage as type test_cursor is ref cursor;
+end testpackage;
+
+
+create or replace procedure fenye(
+TableName varchar2,
+OneCount number,
+NowPage number,
+AllCount out number,
+AllPages out number,
+p_cursor out testpackage.test_cursor
+)
+is
+
+v_sql varchar2(1000);
+v_begin number:=(NowPage-1)*OneCount+1;
+v_end number:=NowPage*OneCount;
+
+begin
+ v_sql:='select * from (select a1.*,rownum rn from (select * from '||TableName||') a1 where rownum<='||v_end||') a2 where rn>='||v_begin;
+ open p_cursor for v_sql;
+ v_sql:='select count(*) from '||TableName;
+ 
+ execute immediate v_sql into AllCount;
+ if mod(AllCount,OneCount)=0 then 
+   AllPages:=AllCount/OneCount;
+   else
+    AllPages:= TRUNC(AllCount/OneCount)+1;
+    end if;
+    
+    --close p_cursor;
+  end;
+
+
